@@ -1,6 +1,8 @@
 import flet
-from functions import side_button, build_var_simbol, build_single_centered_row, window_builder
 import subprocess
+import json
+import os
+from functions import side_button, data_handler, build_var_simbol, build_single_centered_row, window_builder,data_loader
 
 def main_screen(page: flet.Page):
     page.title='GeneralCMDrunner'
@@ -9,7 +11,7 @@ def main_screen(page: flet.Page):
     page.padding=0
     window=""
     greater_position=0
-    data=None
+    data=data_handler()
 
     #main var
     central_var_button=side_button("Variável central",flet.Text("VC",color=flet.Colors.WHITE,weight="bold"))
@@ -32,7 +34,7 @@ def main_screen(page: flet.Page):
         central_var_window=build_single_centered_row([central_var_input,run_button])
         window.content=central_var_window
         window.update()
-    central_var_button.on_click_event(central_var)
+    central_var_button.on_click=central_var
 
     #add var
     add_var_button=side_button("Adicionar variável",flet.Icon(flet.Icons.ADD,color=flet.Colors.WHITE))
@@ -48,6 +50,7 @@ def main_screen(page: flet.Page):
         window.update()
     var_name_input=flet.TextField(label="Variable name",width=363,on_change=edit_var_name_field)
     def create_var(e):
+        nonlocal greater_position
         error=False
         if not var_name_input.value or var_name_input.value.strip() == "":
             error=True
@@ -67,10 +70,14 @@ def main_screen(page: flet.Page):
         def set_new_var_window(event):
             window.content=new_var_window
             window.update()
-        new_var.on_click_event(set_new_var_window)
+        new_var.on_click=set_new_var_window
         new_var.window=new_var_window
         new_var.input_type=var_type_dropdown.value
-        new_var.simbol=new_var_name
+        new_var.simbol=new_var_simbol.value
+        new_var.data=data
+        new_var.position=greater_position
+        greater_position+=1
+        new_var.save()
         buttons_column.controls.append(new_var)
         page.update()
     def add_var(e):
@@ -110,7 +117,7 @@ def main_screen(page: flet.Page):
             ])
             )],alignment=flet.MainAxisAlignment.CENTER)],alignment=flet.MainAxisAlignment.CENTER))
         window.update()
-    add_var_button.on_click_event(add_var)
+    add_var_button.on_click=add_var
 
     #screen content
     buttons_column=flet.Column(controls=[add_var_button,central_var_button],spacing=10,top=30,left=0)
@@ -120,6 +127,14 @@ def main_screen(page: flet.Page):
         buttons_column
         ],expand=True)
 
+    #initialization
+    if os.path.isfile("GeneralData.json"):
+        with open("GeneralData.json","r",encoding="utf-8") as file:
+            data.update(json.load(file))
+    data_loader(data,buttons_column.controls,window)
+    if data:
+        greater_position=max([i["position"] for i in data.values()])
+    
     page.add(screen)
     page.update()
 

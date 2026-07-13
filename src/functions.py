@@ -31,10 +31,8 @@ class side_button(ft.Container):
         self.position=None
         self.input_type=None
         self.simbol=None
-
-    #Set window to var
-    def set_window(self,window_value):
-        self.window=window_value
+        self.data=None
+        self.child_custom_list=None
     
     #Slide animation function
     def animate_button(self,e):
@@ -44,14 +42,6 @@ class side_button(ft.Container):
             self.width=45
         self.update()
 
-    #Set on click event
-    def on_click_event(self,event):
-        self.on_click=event
-
-    #command set value
-    def command_set(self,command):
-        self.command_value=command
-    
     #window value input class
     class window_input(ft.TextField):
         def __init__(self,name,size,father,value):
@@ -62,8 +52,8 @@ class side_button(ft.Container):
             self.value=value
             self.on_change=self.update
         def update(self,e):
-            self.father.command_set(e.control.value)
-            self.father.side_button_textfield_saver
+            self.father.command_value=e.control.value
+            self.father.save()
     
     #window create value input function
     def new_input(self,name,size,remember=True):
@@ -81,10 +71,11 @@ class side_button(ft.Container):
             self.width=size
             self.max_height=max_height
             self.father=father
-            self.options: list=[ft.Container(ft.Row(controls=[ft.Text(value="Adicionar",weight='bold')]),height=40,on_click=self.new_option)]
+            self.options: list=[ft.Container(content=ft.Row(controls=[ft.Text(value="Adicionar",weight='bold')]),height=40,on_click=self.new_option)]
             self.items=self.build_list_items
             self.controls=[self.build_list_button,self.items]
             self.items.animate=ft.Animation(300,ft.AnimationCurve.EASE_OUT)
+            self.father.child_custom_list=self
         
         @property
         def build_list_button(self):
@@ -113,14 +104,18 @@ class side_button(ft.Container):
 
         def new_option(self,e):
             self.items.height=0
-            self.controls=[ft.TextField(label="Nova opção",on_submit=self.add_option)]
+            self.controls=[ft.TextField(label="Nova opção",on_submit=self.e_add_option)]
             self.update()
 
-        def add_option(self,e):
-            option=self.container_option(e.control.value,self)
+        def add_option(self,option_text):
+            option=self.container_option(option_text,self)
             self.options.append(option)
             self.items.content=ft.Column(controls=self.options,expand=True,spacing=0,scroll=True)
             self.controls=[self.build_list_button,self.items]
+            self.father.save()
+
+        def e_add_option(self,e):
+            self.add_option(e.control.value)
             self.update()
 
         class container_option(ft.Container):
@@ -149,29 +144,23 @@ class side_button(ft.Container):
                 self.father.father.command_value=self.value
                 self.father.controls[0].content=ft.Text(self.value,weight='bold')
                 self.father.show_items()
+                self.father.father.save()
                 return
             
     #Window create custom dropdown list input function
     def new_dropdown_cl(self,name,size,max_height=200):
         return self.custom_list(name,size,self,max_height)
-    
-    #loaders
-    
-    #simple textfield loader
-    def load_textfield(vardict,window):
-        textfield_button=side_button(vardict["text"],vardict["simbol"])
-        def button_window(e):
-            window.content=ft.Container(expand=True,content=ft.Column(
-                controls=[ft.Row(controls=[side_button.new_input(f'{vardict["text"]} value',350)],
-                alignment=ft.MainAxisAlignment.CENTER)],alignment=ft.MainAxisAlignment.CENTER
-            ))
-            window.update()
-        textfield_button.on_click=button_window
-        return textfield_button
+
+    #general saver
+    def save(self):
+        general_saver={
+            "text": self.textfield_saver,
+            "list": self.custom_list_saver
+        }
+        general_saver[self.input_type]()
     
     #side button textfield saver
-    @property
-    def side_button_textfield_saver(self):
+    def textfield_saver(self):
         side_button_data={
             "command_value":self.command_value,
             "name":self.text,
@@ -179,8 +168,53 @@ class side_button(ft.Container):
             "simbol":self.simbol,
             "position":self.position
         }
-        with open("GeneralData.json","a",encoding="utf-8") as json_file:
-            json_file.write(json.dump(side_button_data,json_file)+"\n")
+        self.data.input(side_button_data)
+    
+    #custom dropdown list saver
+    def custom_list_saver(self):
+        custom_list_options=[]
+        for i in self.child_custom_list.options:
+            if i.content.controls[0].value!="Adicionar":
+                custom_list_options.append(i.content.controls[0].value)
+            else:
+                continue
+        side_button_data={
+            "command_value":self.command_value,
+            "name":self.text,
+            "input_type":self.input_type,
+            "simbol":self.simbol,
+            "position":self.position,
+            "options":custom_list_options
+        }
+        self.data.input(side_button_data)
+    
+    #general side_button data loader
+    def load(self,side_button_data,window):
+        general_side_button_loader={
+            "text": self.textfield_sidebutton_loader,
+            "list": self.custom_list_sidebutton_loader
+        }
+        general_side_button_loader[self.input_type](side_button_data,window)
+    
+    #textfield side_button loader
+    def textfield_sidebutton_loader(self,side_button_data,window):
+        self.window=window_builder(self,self.name,self.input_type)
+        def window_event(e):
+            window.content=self.window
+            window.update()
+        self.on_click=window_event
+    
+    #custom_list side_button loader
+    def custom_list_sidebutton_loader(self,side_button_data,window):
+        self.window=window_builder(self,self.text,self.input_type)
+        def window_event(e):
+            window.content=self.window
+            window.update()
+        self.on_click=window_event
+        for i in side_button_data["options"]:
+            self.child_custom_list.add_option(i)
+        if self.command_value!="":
+            self.child_custom_list.value=self.command_value
 
 #function for build the variables simbol
 def build_var_simbol(var_name):
@@ -204,17 +238,32 @@ def window_builder(var,var_name,input_type):
     return built_window
 
 #data saver class
-class data():
-    def __init__(self,data_var):
+class data_handler(dict):
+    def __init__(self):
         super().__init__()
-        self.var=data_var
     
     #data input
-    def input(self,data):
-        1
+    def input(self,new_data: dict):
+        key_name=new_data.get("name")
+        if key_name in self:
+            self[key_name].update(new_data)
+        else:
+            self[key_name]=new_data
+        self.save()
     
     #saver function
-    @property
     def save(self):
-        with open("GeneralData","w",encoding="utf-8") as file:
-            json.dump(self.var,file)
+        with open("GeneralData.json","w",encoding="utf-8") as file:
+            json.dump(self,file,indent=4)
+
+#general data loader
+def data_loader(data: dict,buttons_list: list,window):
+    sorted_data=sorted(data.values(),key=lambda x:x["position"])
+    for i in sorted_data:
+        new_side_button=side_button(i["name"],ft.Text(i["simbol"],color=ft.Colors.WHITE,weight="bold"))
+        new_side_button.data=data
+        new_side_button.input_type=i["input_type"]
+        new_side_button.command_value=i["command_value"]
+        new_side_button.position=i["position"]
+        new_side_button.load(i,window)
+        buttons_list.append(new_side_button)

@@ -1,0 +1,27 @@
+{
+    "Lettuce test": {
+        "command_value": "start",
+        "name": "Lettuce test",
+        "input_type": "list",
+        "simbol": null,
+        "position": 0,
+        "options": [
+            "start",
+            "carrot",
+            "potato"
+        ]
+    },
+    "Cabbage test": {
+        "command_value": "magnify",
+        "name": "Cabbage test",
+        "input_type": "list",
+        "simbol": null,
+        "position": 1,
+        "options": [
+            "calc",
+            "chrome",
+            "explorer",
+            "magnify"
+        ]
+    }
+}

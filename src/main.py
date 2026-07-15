@@ -2,14 +2,14 @@ import flet
 import subprocess
 import json
 import os
-from functions import side_button, data_handler, build_var_simbol, build_single_centered_row, window_builder,data_loader
+from functions import side_button, data_handler, build_var_simbol, build_single_centered_row, window_builder,data_loader,window_class
 
 def main_screen(page: flet.Page):
     page.title='GeneralCMDrunner'
     page.window.width=700
     page.window.height=500
     page.padding=0
-    window=""
+    window=window_class()
     greater_position=0
     data=data_handler()
 
@@ -75,8 +75,9 @@ def main_screen(page: flet.Page):
         new_var.input_type=var_type_dropdown.value
         new_var.simbol=new_var_simbol.value
         new_var.data=data
-        new_var.position=greater_position
         greater_position+=1
+        new_var.position=greater_position
+        new_var.father=buttons_column.controls
         new_var.save()
         buttons_column.controls.append(new_var)
         page.update()
@@ -121,7 +122,6 @@ def main_screen(page: flet.Page):
 
     #screen content
     buttons_column=flet.Column(controls=[add_var_button,central_var_button],spacing=10,top=30,left=0)
-    window=flet.Container(expand=True)
     screen=flet.Stack(controls=[
         window,
         buttons_column
@@ -137,5 +137,6 @@ def main_screen(page: flet.Page):
     
     page.add(screen)
     page.update()
+    print(greater_position)
 
 flet.app(main_screen)

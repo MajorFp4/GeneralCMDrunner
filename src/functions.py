@@ -9,18 +9,10 @@ class side_button(ft.Container):
         self.max_width=max_width
         self.text=text
         button_text=ft.Text(self.text,color=ft.Colors.WHITE,weight="bold",no_wrap=True)
-        content=ft.Container(
-            content=ft.Row(controls=[
-                button_text,simbol
-            ],alignment=ft.MainAxisAlignment.END,spacing=20),
-        width=max_width,
-        height=37,
-        padding=ft.padding.only(right=10),
-        right=0
-        )
+        content=ft.Container(width=max_width,right=0,content=ft.Row(controls=[button_text,ft.Row(controls=[ft.Container(content=simbol,padding=ft.padding.all(5))],alignment=ft.MainAxisAlignment.END,width=45)],alignment=ft.MainAxisAlignment.END,spacing=0))
         self.content=ft.Stack(controls=[content])
         self.width=45
-        self.height=37
+        self.height=34
         self.border_radius=ft.border_radius.only(top_right=10,bottom_right=10)
         self.bgcolor=ft.Colors.BLUE_GREY_900
         self.on_hover=self.animate_button
@@ -33,6 +25,7 @@ class side_button(ft.Container):
         self.simbol=None
         self.data=None
         self.child_custom_list=None
+        self.father=None
     
     #Slide animation function
     def animate_button(self,e):
@@ -151,6 +144,14 @@ class side_button(ft.Container):
     def new_dropdown_cl(self,name,size,max_height=200):
         return self.custom_list(name,size,self,max_height)
 
+    #delete icon class
+    class delete_icon(ft.Container):
+        def __init__(self,father):
+            super().__init__()
+            self.father=father
+            self.content=ft.Icon(ft.Icons.DELETE_FOREVER,color=ft.Colors.WHITE)
+        def 
+    
     #general saver
     def save(self):
         general_saver={
@@ -198,10 +199,11 @@ class side_button(ft.Container):
     
     #textfield side_button loader
     def textfield_sidebutton_loader(self,side_button_data,window):
-        self.window=window_builder(self,self.name,self.input_type)
+        self.window=window_builder(self,self.text,self.input_type)
         def window_event(e):
             window.content=self.window
             window.update()
+            print("called")
         self.on_click=window_event
     
     #custom_list side_button loader
@@ -210,6 +212,7 @@ class side_button(ft.Container):
         def window_event(e):
             window.content=self.window
             window.update()
+            window.window_user=self.position
         self.on_click=window_event
         for i in side_button_data["options"]:
             self.child_custom_list.add_option(i)
@@ -230,11 +233,18 @@ def build_single_centered_row(row_controls: list):
     return ft.Column(controls=[ft.Row(controls=row_controls,alignment=ft.MainAxisAlignment.CENTER)],alignment=ft.MainAxisAlignment.CENTER)
 
 def window_builder(var,var_name,input_type):
+    def delete_event(e):
+        var.data.remove(var)
+        var.father.remove(var)
+        var.father.update()
+        var.data.save()
     interface_generator={
             "text": lambda: var.new_input(f'{var_name} value',350),
             "list": lambda: var.new_dropdown_cl(f'{var_name} list',350)
         }
-    built_window=build_single_centered_row([interface_generator[input_type]()])
+    base_window_content=build_single_centered_row([interface_generator[input_type]()])
+    delete_icon=ft.Row(controls=[ft.Column(controls=[ft.Container(content=ft.Icon(ft.Icons.DELETE_FOREVER,color=ft.Colors.WHITE),padding=10,on_click=delete_event)],alignment=ft.MainAxisAlignment.START)],alignment=ft.MainAxisAlignment.END)
+    built_window=ft.Stack(controls=[base_window_content,delete_icon])
     return built_window
 
 #data saver class
@@ -265,5 +275,13 @@ def data_loader(data: dict,buttons_list: list,window):
         new_side_button.input_type=i["input_type"]
         new_side_button.command_value=i["command_value"]
         new_side_button.position=i["position"]
+        new_side_button.father=buttons_list
         new_side_button.load(i,window)
         buttons_list.append(new_side_button)
+
+#window class
+class window_class(ft.Container):
+    def __init__(self):
+        super().__init__()
+        self.window_user=-1
+        self.expand=True

@@ -26,6 +26,7 @@ class side_button(ft.Container):
         self.data=None
         self.child_custom_list=None
         self.father=None
+        self.main_window=None
     
     #Slide animation function
     def animate_button(self,e):
@@ -150,7 +151,24 @@ class side_button(ft.Container):
             super().__init__()
             self.father=father
             self.content=ft.Icon(ft.Icons.DELETE_FOREVER,color=ft.Colors.WHITE)
-        def 
+            self.on_click=self.delete_event
+        
+        def delete_event(self,e):
+            del self.father.data[self.father.text]
+            self.father.father.controls.remove(self.father)
+            self.father.main_window.content=ft.Container(expand=True)
+            self.father.father.update()
+            self.father.main_window.update()
+            self.father.data.save()
+            greater_buttons_data=[key for key, value in self.father.data.items() if value["position"]>self.father.position]
+            self.father.data.pos_decreaser(greater_buttons_data,1)
+            greater_buttons=[i for i in self.father.father.controls if i.position>self.father.position]
+            for i in greater_buttons:
+                i.position-=1
+
+    #delete icon create function
+    def new_delete_icon(self):
+        return self.delete_icon(self)
     
     #general saver
     def save(self):
@@ -233,17 +251,12 @@ def build_single_centered_row(row_controls: list):
     return ft.Column(controls=[ft.Row(controls=row_controls,alignment=ft.MainAxisAlignment.CENTER)],alignment=ft.MainAxisAlignment.CENTER)
 
 def window_builder(var,var_name,input_type):
-    def delete_event(e):
-        var.data.remove(var)
-        var.father.remove(var)
-        var.father.update()
-        var.data.save()
     interface_generator={
             "text": lambda: var.new_input(f'{var_name} value',350),
             "list": lambda: var.new_dropdown_cl(f'{var_name} list',350)
         }
     base_window_content=build_single_centered_row([interface_generator[input_type]()])
-    delete_icon=ft.Row(controls=[ft.Column(controls=[ft.Container(content=ft.Icon(ft.Icons.DELETE_FOREVER,color=ft.Colors.WHITE),padding=10,on_click=delete_event)],alignment=ft.MainAxisAlignment.START)],alignment=ft.MainAxisAlignment.END)
+    delete_icon=ft.Row(controls=[ft.Column(controls=[var.new_delete_icon()],alignment=ft.MainAxisAlignment.START)],alignment=ft.MainAxisAlignment.END)
     built_window=ft.Stack(controls=[base_window_content,delete_icon])
     return built_window
 
@@ -261,13 +274,21 @@ class data_handler(dict):
             self[key_name]=new_data
         self.save()
     
+    #position increaser
+    def pos_decreaser(self,items_key: list,decrease: int):
+        keys_list=items_key
+        for key in self:
+            if key in keys_list:
+                key["position"]+=decrease
+        self.save
+    
     #saver function
     def save(self):
         with open("GeneralData.json","w",encoding="utf-8") as file:
             json.dump(self,file,indent=4)
 
 #general data loader
-def data_loader(data: dict,buttons_list: list,window):
+def data_loader(data: dict,buttons_list,window):
     sorted_data=sorted(data.values(),key=lambda x:x["position"])
     for i in sorted_data:
         new_side_button=side_button(i["name"],ft.Text(i["simbol"],color=ft.Colors.WHITE,weight="bold"))
@@ -276,8 +297,9 @@ def data_loader(data: dict,buttons_list: list,window):
         new_side_button.command_value=i["command_value"]
         new_side_button.position=i["position"]
         new_side_button.father=buttons_list
+        new_side_button.main_window=window
         new_side_button.load(i,window)
-        buttons_list.append(new_side_button)
+        buttons_list.controls.append(new_side_button)
 
 #window class
 class window_class(ft.Container):

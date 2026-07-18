@@ -77,7 +77,8 @@ def main_screen(page: flet.Page):
         new_var.data=data
         greater_position+=1
         new_var.position=greater_position
-        new_var.father=buttons_column.controls
+        new_var.main_window=window
+        new_var.father=buttons_column
         new_var.save()
         buttons_column.controls.append(new_var)
         page.update()
@@ -131,7 +132,7 @@ def main_screen(page: flet.Page):
     if os.path.isfile("GeneralData.json"):
         with open("GeneralData.json","r",encoding="utf-8") as file:
             data.update(json.load(file))
-    data_loader(data,buttons_column.controls,window)
+    data_loader(data,buttons_column,window)
     if data:
         greater_position=max([i["position"] for i in data.values()])
     

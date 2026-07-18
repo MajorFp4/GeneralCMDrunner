@@ -38,24 +38,26 @@ class side_button(ft.Container):
 
     #window value input class
     class window_input(ft.TextField):
-        def __init__(self,name,size,father,value):
+        def __init__(self,name,size,father,value,saving):
             super().__init__()
             self.label=name
             self.width=size
             self.father=father
             self.value=value
+            self.saving=saving
             self.on_change=self.update
         def update(self,e):
             self.father.command_value=e.control.value
-            self.father.save()
+            if self.saving == True:
+                self.father.save()
     
     #window create value input function
-    def new_input(self,name,size,remember=True):
+    def new_input(self,name,size,remember=True,save=True):
         value=self.command_value
         if remember == False:
             self.command_value=""
             value=""
-        return self.window_input(name,size,self,value)
+        return self.window_input(name,size,self,value,saving=save)
     
     #Window custom dropdown list input class
     class custom_list(ft.Stack):
@@ -65,13 +67,12 @@ class side_button(ft.Container):
             self.width=size
             self.max_height=max_height
             self.father=father
-            self.options: list=[ft.Container(content=ft.Row(controls=[ft.Text(value="Adicionar",weight='bold')]),height=40,on_click=self.new_option)]
-            self.items=self.build_list_items
-            self.controls=[self.build_list_button,self.items]
+            self.options: list=[ft.Container(content=ft.Row(controls=[ft.Text(value="Add option",weight='bold')]),height=40,on_click=self.new_option)]
+            self.items=self.build_list_items()
+            self.controls=[self.build_list_button(),self.items]
             self.items.animate=ft.Animation(300,ft.AnimationCurve.EASE_OUT)
             self.father.child_custom_list=self
         
-        @property
         def build_list_button(self):
             built_list=ft.Container(
                     border=ft.border.all(2,color=ft.Colors.GREY),
@@ -84,7 +85,6 @@ class side_button(ft.Container):
                 )
             return built_list
         
-        @property
         def build_list_items(self):
             built_list=ft.Container(content=ft.Column(controls=self.options,expand=True,spacing=0,scroll=True),height=0,top=50,padding=ft.padding.only(left=10),border_radius=10,bgcolor=ft.Colors.BLUE_GREY,width=self.width)
             return built_list
@@ -98,14 +98,14 @@ class side_button(ft.Container):
 
         def new_option(self,e):
             self.items.height=0
-            self.controls=[ft.TextField(label="Nova opção",on_submit=self.e_add_option)]
+            self.controls=[ft.TextField(label="New option",on_submit=self.e_add_option)]
             self.update()
 
         def add_option(self,option_text):
             option=self.container_option(option_text,self)
             self.options.append(option)
             self.items.content=ft.Column(controls=self.options,expand=True,spacing=0,scroll=True)
-            self.controls=[self.build_list_button,self.items]
+            self.controls=[self.build_list_button(),self.items]
             self.father.save()
 
         def e_add_option(self,e):
@@ -162,7 +162,7 @@ class side_button(ft.Container):
             self.father.data.save()
             greater_buttons_data=[key for key, value in self.father.data.items() if value["position"]>self.father.position]
             self.father.data.pos_decreaser(greater_buttons_data,1)
-            greater_buttons=[i for i in self.father.father.controls if i.position>self.father.position]
+            greater_buttons=[i for i in self.father.father.controls[2:] if i.position>self.father.position]
             for i in greater_buttons:
                 i.position-=1
 
@@ -192,11 +192,8 @@ class side_button(ft.Container):
     #custom dropdown list saver
     def custom_list_saver(self):
         custom_list_options=[]
-        for i in self.child_custom_list.options:
-            if i.content.controls[0].value!="Adicionar":
-                custom_list_options.append(i.content.controls[0].value)
-            else:
-                continue
+        for i in self.child_custom_list.options[1:]:
+            custom_list_options.append(i.content.controls[0].value)
         side_button_data={
             "command_value":self.command_value,
             "name":self.text,
@@ -217,16 +214,15 @@ class side_button(ft.Container):
     
     #textfield side_button loader
     def textfield_sidebutton_loader(self,side_button_data,window):
-        self.window=window_builder(self,self.text,self.input_type)
+        self.window=window_builder(self)
         def window_event(e):
             window.content=self.window
             window.update()
-            print("called")
         self.on_click=window_event
     
     #custom_list side_button loader
     def custom_list_sidebutton_loader(self,side_button_data,window):
-        self.window=window_builder(self,self.text,self.input_type)
+        self.window=window_builder(self)
         def window_event(e):
             window.content=self.window
             window.update()
@@ -250,12 +246,12 @@ def build_var_simbol(var_name):
 def build_single_centered_row(row_controls: list):
     return ft.Column(controls=[ft.Row(controls=row_controls,alignment=ft.MainAxisAlignment.CENTER)],alignment=ft.MainAxisAlignment.CENTER)
 
-def window_builder(var,var_name,input_type):
+def window_builder(var):
     interface_generator={
-            "text": lambda: var.new_input(f'{var_name} value',350),
-            "list": lambda: var.new_dropdown_cl(f'{var_name} list',350)
+            "text": lambda: var.new_input(f'{var.text} value',350),
+            "list": lambda: var.new_dropdown_cl(f'{var.text} list',350)
         }
-    base_window_content=build_single_centered_row([interface_generator[input_type]()])
+    base_window_content=build_single_centered_row([interface_generator[var.input_type]()])
     delete_icon=ft.Row(controls=[ft.Column(controls=[var.new_delete_icon()],alignment=ft.MainAxisAlignment.START)],alignment=ft.MainAxisAlignment.END)
     built_window=ft.Stack(controls=[base_window_content,delete_icon])
     return built_window
@@ -264,6 +260,7 @@ def window_builder(var,var_name,input_type):
 class data_handler(dict):
     def __init__(self):
         super().__init__()
+        self.save_file_path=None
     
     #data input
     def input(self,new_data: dict):
@@ -274,17 +271,17 @@ class data_handler(dict):
             self[key_name]=new_data
         self.save()
     
-    #position increaser
+    #position decreaser
     def pos_decreaser(self,items_key: list,decrease: int):
         keys_list=items_key
         for key in self:
             if key in keys_list:
-                key["position"]+=decrease
-        self.save
+                self[key]["position"]-=decrease
+        self.save()
     
     #saver function
     def save(self):
-        with open("GeneralData.json","w",encoding="utf-8") as file:
+        with open(self.save_file_path,"w",encoding="utf-8") as file:
             json.dump(self,file,indent=4)
 
 #general data loader
